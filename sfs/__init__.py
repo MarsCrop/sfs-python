@@ -35,7 +35,7 @@ class default:
     rho0 = 1.2250
     """Static density of air."""
 
-    selection_tolerance = 1e-6
+    selection_tolerance = -45.9
     """Tolerance used for secondary source selection."""
 
     def __setattr__(self, name, value):
@@ -61,11 +61,11 @@ from . import array
 from . import util
 try:
     from . import plot2d
-except ImportError:
+except Exception as e:
     pass
 try:
     from . import plot3d
-except ImportError:
+except Exception as e:
     pass
 
 from . import fd
