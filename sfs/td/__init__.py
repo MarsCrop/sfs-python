@@ -85,17 +85,25 @@ def apply_delays(signal, delays):
         and a (possibly negative) time offset (in seconds).
 
     """
-    data, samplerate, initial_offset = _util.as_delayed_signal(signal)
-    data = _util.asarray_1d(data)
-    delays = _util.asarray_1d(delays)
+    #data, samplerate, initial_offset = _util.as_delayed_signal(signal)
+    data = _util.asarray_1d(signal)
+    initial_offset = 0
+    samplerate = 44100
     delays += initial_offset
 
     delays_samples = _np.rint(samplerate * delays).astype(int)
     offset_samples = delays_samples.min()
     delays_samples -= offset_samples
     out = _np.zeros((delays_samples.max() + len(data), len(delays_samples)))
-    for column, row in enumerate(delays_samples):
-        out[row:row + len(data), column] = data
+    #Validate here
+    #print("OUT", _np.shape(out))
+    #print("DELAYS SAMPLES", _np.shape(delays_samples.T))
+    for delays in delays_samples.T:
+        #print("DELAYS", _np.shape(delays))
+        for column, row in enumerate(delays):
+            #print("ROW", row)
+            #print("COL", column)
+            out[row:row + len(data), column] = data
     return _util.DelayedSignal(out, samplerate, offset_samples / samplerate)
 
 
@@ -110,3 +118,4 @@ def secondary_source_point(c):
 
 from . import nfchoa
 from . import wfs
+
