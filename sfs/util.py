@@ -6,7 +6,7 @@
 
 import collections
 import numpy as np
-from numpy.core.umath_tests import inner1d
+import numpy as _np
 from scipy.special import spherical_jn, spherical_yn
 from . import default
 
@@ -398,23 +398,23 @@ class XyzComponents(np.ndarray):
     def __array_finalize__(self, obj):
         if self.ndim == 0:
             pass  # this is allowed, e.g. for np.inner()
-        elif self.ndim > 1 or len(self) not in (2, 3):
+        elif self.ndim > 1 or len(self) not in tuple(np.arange(2,8)):
             raise ValueError("XyzComponents can only have 2 or 3 components")
 
     def __array_prepare__(self, obj, context=None):
-        if obj.ndim == 1 and len(obj) in (2, 3):
+        if obj.ndim == 1 and len(obj) in tuple(np.arange(2,8)):
             return obj.view(XyzComponents)
         return obj
 
     def __array_wrap__(self, obj, context=None):
-        if obj.ndim != 1 or len(obj) not in (2, 3):
+        if obj.ndim != 1 or len(obj) not in tuple(np.arange(2,8)):
             return obj.view(np.ndarray)
         return obj
 
     def __getitem__(self, index):
         if isinstance(index, slice):
             start, stop, step = index.indices(len(self))
-            if start == 0 and stop in (2, 3) and step == 1:
+            if start == 0 and stop in tuple(np.arange(2,8)) and step == 1:
                 return np.ndarray.__getitem__(self, index)
         # Slices other than xy and xyz are "downgraded" to ndarray
         return np.ndarray.__getitem__(self.view(np.ndarray), index)
@@ -576,7 +576,7 @@ def source_selection_point(n0, x0, xs):
     x0 = asarray_of_rows(x0)
     xs = asarray_1d(xs)
     ds = x0 - xs
-    return inner1d(ds, n0) >= default.selection_tolerance
+    return _np.inner(ds, n0) >= default.selection_tolerance
 
 
 def source_selection_line(n0, x0, xs):
@@ -594,11 +594,13 @@ def source_selection_focused(ns, x0, xs):
     Eq.(2.78) from :cite:`Wierstorf2014`
 
     """
-    x0 = asarray_of_rows(x0)
-    xs = asarray_1d(xs)
     ns = normalize_vector(ns)
-    ds = xs - x0
-    return inner1d(ns, ds) >= default.selection_tolerance
+    ds = []
+    #print("x0", x0, np.shape(x0))
+    for row in x0:
+        ds.append(xs - np.resize(row,np.shape(xs)))
+    ds = np.array(ds)    
+    return _np.inner(ns, ds) >= default.selection_tolerance
 
 
 def source_selection_all(N):
@@ -646,3 +648,4 @@ def max_order_spherical_harmonics(N):
 
     """
     return int(np.sqrt(N) - 1)
+
