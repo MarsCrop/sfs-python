@@ -44,7 +44,6 @@
 
 """
 import numpy as _np
-from numpy.core.umath_tests import inner1d as _inner1d
 
 from . import apply_delays as _apply_delays
 from . import secondary_source_point as _secondary_source_point
@@ -119,8 +118,8 @@ def plane_25d(x0, n0, n=[0, 1, 0], xref=[0, 0, 0], c=None):
     n = _util.normalize_vector(n)
     xref = _util.asarray_1d(xref)
     g0 = _np.sqrt(2 * _np.pi * _np.linalg.norm(xref - x0, axis=1))
-    delays = _inner1d(n, x0) / c
-    weights = 2 * g0 * _inner1d(n, n0)
+    delays = _np.inner(n, x0) / c
+    weights = 2 * g0 * _np.inner(n, n0)
     selection = _util.source_selection_plane(n0, n)
     return delays, weights, selection, _secondary_source_point(c)
 
@@ -208,7 +207,7 @@ def point_25d(x0, n0, xs, xref=[0, 0, 0], c=None):
     g0 *= _np.sqrt((x0xs_n*x0xref_n)/(x0xs_n+x0xref_n))
 
     delays = x0xs_n/c
-    weights = g0*_inner1d(x0xs, n0)
+    weights = g0*_np.inner(x0xs, n0)
     selection = _util.source_selection_point(n0, x0, xs)
     return delays, weights, selection, _secondary_source_point(c)
 
@@ -296,7 +295,7 @@ def point_25d_legacy(x0, n0, xs, xref=[0, 0, 0], c=None):
     ds = x0 - xs
     r = _np.linalg.norm(ds, axis=1)
     delays = r/c
-    weights = g0 * _inner1d(ds, n0) / (2 * _np.pi * r**(3/2))
+    weights = g0 * _np.inner(ds, n0) / (2 * _np.pi * r**(3/2))
     selection = _util.source_selection_point(n0, x0, xs)
     return delays, weights, selection, _secondary_source_point(c)
 
@@ -372,14 +371,16 @@ def focused_25d(x0, n0, xs, ns, xref=[0, 0, 0], c=None):
         c = _default.c
     x0 = _util.asarray_of_rows(x0)
     n0 = _util.asarray_of_rows(n0)
-    xs = _util.asarray_1d(xs)
+    #xs = _util.asarray_1d(xs)
     xref = _util.asarray_1d(xref)
-    ds = x0 - xs
+    ds = _np.array([x0 - xsi for xsi in xs])
+    #print("DS", ds)
     r = _np.linalg.norm(ds, axis=1)
+    #print("R", ds)
     g0 = _np.sqrt(_np.linalg.norm(xref - x0, axis=1)
-                  / (_np.linalg.norm(xref - x0, axis=1) + r))
+                  / _np.array([_np.array([_np.linalg.norm(xref - _np.mat([x0i]).T, axis=1) for x0i in x0]) + ri for ri in r]))
     delays = -r/c
-    weights = g0 * _inner1d(ds, n0) / (2 * _np.pi * r**(3/2))
+    weights = g0 * _np.inner(ds, n0) / (2 * _np.pi * r**(3/2))
     selection = _util.source_selection_focused(ns, x0, xs)
     return delays, weights, selection, _secondary_source_point(c)
 
@@ -408,7 +409,7 @@ def driving_signals(delays, weights, signal):
         and a (possibly negative) time offset (in seconds).
 
     """
-    delays = _util.asarray_1d(delays)
     weights = _util.asarray_1d(weights)
     data, samplerate, signal_offset = _apply_delays(signal, delays)
-    return _util.DelayedSignal(data * weights, samplerate, signal_offset)
+    print("WEIGHTS", _np.shape(weights))
+    return _np.array([_util.DelayedSignal(datai[:46] * weights, samplerate, signal_offset).data for datai in data.T])
